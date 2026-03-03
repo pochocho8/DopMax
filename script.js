@@ -1,6 +1,57 @@
 // Esperar a que el DOM esté cargado
 document.addEventListener('DOMContentLoaded', () => {
-    
+
+    // ==========================================
+    // DESHABILITAR COPIAR, PEGAR Y MENÚ CONTEXTUAL
+    // ==========================================
+
+    // Deshabilitar menú contextual (click derecho)
+    document.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        return false;
+    });
+
+    // Deshabilitar copiar
+    document.addEventListener('copy', (e) => {
+        e.preventDefault();
+        return false;
+    });
+
+    // Deshabilitar cortar
+    document.addEventListener('cut', (e) => {
+        e.preventDefault();
+        return false;
+    });
+
+    // Deshabilitar pegar (solo permitir en comentarios y chat)
+    document.addEventListener('paste', (e) => {
+        const allowedInputs = ['comment-input', 'chat-input'];
+        if (e.target.id && allowedInputs.includes(e.target.id)) {
+            return; // Permitir pegar en comentarios y chat
+        }
+        e.preventDefault();
+        return false;
+    });
+
+    // Deshabilitar atajos de teclado (Ctrl+C, Ctrl+V, Ctrl+X, Ctrl+A)
+    document.addEventListener('keydown', (e) => {
+        const allowedInputs = ['comment-input', 'chat-input'];
+        
+        // Permitir Ctrl+V, Ctrl+C, Ctrl+X solo en inputs de comentarios y chat
+        if (e.target.id && allowedInputs.includes(e.target.id)) {
+            return;
+        }
+        
+        if ((e.ctrlKey || e.metaKey) && 
+            (e.key === 'c' || e.key === 'C' || 
+             e.key === 'v' || e.key === 'V' || 
+             e.key === 'x' || e.key === 'X' ||
+             e.key === 'a' || e.key === 'A')) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
     // Pantalla de carga - simular tiempo de carga
     const loadingScreen = document.getElementById('loading-screen');
     const homeScreen = document.getElementById('home-screen');
@@ -98,128 +149,226 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // ==========================================
-    // ANIMACIÓN DVD - 3 Videos rebotando lentamente
+    // ANIMACIÓN DVD - 3 Videos rebotando
     // ==========================================
-    
+
     let dvdAnimationId = null;
     const dvdVideos = [];
     let selectedVideo = null;
-    
+    let draggedVideo = null;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    let lastDragX = 0;
+    let lastDragY = 0;
+    let lastDragTime = 0;
+
     function initDVDVideos() {
         const container = document.getElementById('dvd-container');
         if (!container) return;
+
+        // Pequeño delay para asegurar que el contenedor está renderizado
+        setTimeout(() => {
+            const containerWidth = container.offsetWidth;
+            const containerHeight = container.offsetHeight;
+
+            // Limpiar array
+            dvdVideos.length = 0;
+
+            // Obtener los 3 videos
+            const videos = document.querySelectorAll('.dvd-video');
+
+            videos.forEach((video, index) => {
+                const videoWidth = video.offsetWidth || 200;
+                const videoHeight = video.offsetHeight || 280;
+
+                // Posición inicial aleatoria dentro del contenedor
+                const maxX = containerWidth - videoWidth;
+                const maxY = containerHeight - videoHeight - 55; // 55px para los tabs
+                const startX = Math.random() * maxX;
+                const startY = 55 + Math.random() * (containerHeight - videoHeight - 55);
+
+                // Velocidades aleatorias (entre 0.2 y 0.5, con dirección aleatoria)
+                const speedX = 0.2 + Math.random() * 0.3;
+                const speedY = 0.2 + Math.random() * 0.3;
+                const vx = (Math.random() > 0.5 ? 1 : -1) * speedX;
+                const vy = (Math.random() > 0.5 ? 1 : -1) * speedY;
+
+                video.style.width = videoWidth + 'px';
+                video.style.height = videoHeight + 'px';
+                video.style.left = startX + 'px';
+                video.style.top = startY + 'px';
+                video.style.removeProperty('display');
+                video.style.touchAction = 'none'; // Prevenir scroll al arrastrar
+
+                dvdVideos.push({
+                    element: video,
+                    x: startX,
+                    y: startY,
+                    vx: vx,
+                    vy: vy,
+                    width: videoWidth,
+                    height: videoHeight
+                });
+
+                // Eventos de arrastre (mouse y touch)
+                video.addEventListener('mousedown', startDrag);
+                video.addEventListener('touchstart', startDrag, { passive: false });
+            });
+
+            // Eventos globales para arrastre
+            const containerEl = document.getElementById('dvd-container');
+            containerEl.addEventListener('mousemove', drag);
+            containerEl.addEventListener('touchmove', drag, { passive: false });
+            containerEl.addEventListener('mouseup', endDrag);
+            containerEl.addEventListener('touchend', endDrag);
+
+            // Click en contenedor para deseleccionar
+            containerEl.addEventListener('click', () => {
+                deselectVideo();
+            });
+
+            // Iniciar animación
+            animateDVDVideos(containerWidth, containerHeight);
+        }, 50);
+    }
+
+    // ==========================================
+    // ARRASTRAR VIDEOS
+    // ==========================================
+
+    function startDrag(e) {
+        e.preventDefault();
+        e.stopPropagation();
         
+        const touch = e.touches ? e.touches[0] : e;
+        const container = document.getElementById('dvd-container');
+        const containerRect = container.getBoundingClientRect();
+        
+        // Encontrar el video que se está arrastrando
+        for (const video of dvdVideos) {
+            if (video.element === e.currentTarget) {
+                draggedVideo = video;
+                dragOffsetX = touch.clientX - containerRect.left - video.x;
+                dragOffsetY = touch.clientY - containerRect.top - video.y;
+                lastDragX = touch.clientX;
+                lastDragY = touch.clientY;
+                lastDragTime = Date.now();
+                
+                // Pausar animación del video arrastrado
+                video.element.style.transition = 'none';
+                video.element.style.zIndex = '100';
+                break;
+            }
+        }
+    }
+
+    function drag(e) {
+        if (!draggedVideo) return;
+        e.preventDefault();
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const container = document.getElementById('dvd-container');
         const containerRect = container.getBoundingClientRect();
         const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height - 70; // Restar altura del nav
+        const containerHeight = containerRect.height;
         
-        // Limpiar array
-        dvdVideos.length = 0;
+        // Nueva posición
+        let newX = touch.clientX - containerRect.left - dragOffsetX;
+        let newY = touch.clientY - containerRect.top - dragOffsetY;
         
-        // Obtener los 3 videos
-        const videos = document.querySelectorAll('.dvd-video');
+        // Límites
+        const minY = 55;
+        const maxY = containerHeight - draggedVideo.height;
+        const maxX = containerWidth - draggedVideo.width;
         
-        videos.forEach((video, index) => {
-            const videoRect = video.getBoundingClientRect();
-            const videoWidth = 180; // Tamaño fijo
-            const videoHeight = 240;
-            
-            // Posición inicial escalonada
-            const startX = 50 + (index * (containerWidth - 250) / 2);
-            const startY = 150 + (index * 150);
-            
-            // Velocidades muy lentas
-            let vx = parseFloat(video.getAttribute('data-vx')) || 0.3;
-            let vy = parseFloat(video.getAttribute('data-vy')) || 0.25;
-            
-            video.style.width = videoWidth + 'px';
-            video.style.height = videoHeight + 'px';
-            video.style.left = startX + 'px';
-            video.style.top = startY + 'px';
-            video.style.removeProperty('display');
-            
-            dvdVideos.push({
-                element: video,
-                x: startX,
-                y: startY,
-                vx: vx,
-                vy: vy,
-                width: videoWidth,
-                height: videoHeight
-            });
-            
-            // Click en video para seleccionar
-            video.addEventListener('click', (e) => {
-                e.stopPropagation();
-                selectVideo(video);
-            });
-        });
+        newX = Math.max(0, Math.min(newX, maxX));
+        newY = Math.max(minY, Math.min(newY, maxY));
         
-        // Click en contenedor para deseleccionar
-        container.addEventListener('click', () => {
-            deselectVideo();
-        });
+        // Actualizar posición
+        draggedVideo.x = newX;
+        draggedVideo.y = newY;
+        draggedVideo.element.style.left = newX + 'px';
+        draggedVideo.element.style.top = newY + 'px';
         
-        // Iniciar animación
-        animateDVDVideos(containerWidth, containerHeight);
+        // Calcular velocidad basada en el movimiento
+        const now = Date.now();
+        const dt = now - lastDragTime;
+        if (dt > 0 && dt < 100) {
+            const deltaX = touch.clientX - lastDragX;
+            const deltaY = touch.clientY - lastDragY;
+            draggedVideo.vx = deltaX / dt * 16; // Normalizar a ~60fps
+            draggedVideo.vy = deltaY / dt * 16;
+        }
+        
+        lastDragX = touch.clientX;
+        lastDragY = touch.clientY;
+        lastDragTime = now;
+    }
+
+    function endDrag(e) {
+        if (!draggedVideo) return;
+        
+        draggedVideo.element.style.zIndex = '10';
+        draggedVideo = null;
     }
     
     function animateDVDVideos(containerWidth, containerHeight) {
         const container = document.getElementById('dvd-container');
-        if (!container) return;
-        
+        if (!container) {
+            return;
+        }
+
         // Límites exactos
         const tabsHeight = 55; // Altura de los tabs "Seguidos | Para Ti"
         const navHeight = 70;  // Altura del menú inferior
+
+        // Límite superior: tabs
         const minY = tabsHeight;
-        const maxY = containerHeight - navHeight;
-        
+        // Límite inferior: borde del contenedor (videos llegan hasta abajo del todo)
+        const maxY = containerHeight;
+
         // Verificar colisiones entre videos
         checkVideoCollisions();
-        
+
         dvdVideos.forEach((video, index) => {
+            // No mover el video que se está arrastrando
+            if (video === draggedVideo) return;
+            
             const videoEl = video.element;
             const videoWidth = video.width;
             const videoHeight = video.height;
-            
+
             // Actualizar posición
             video.x += video.vx;
             video.y += video.vy;
-            
-            // Rebote en los bordes - asegurando que no se salgan
-            // Izquierda
+
+            // Rebote en los bordes
             if (video.x <= 0) {
                 video.x = 0;
                 video.vx = Math.abs(video.vx);
                 flashVideo(videoEl);
             }
-            
-            // Derecha - el borde derecho del video no debe pasar el contenedor
             if (video.x + videoWidth >= containerWidth) {
                 video.x = containerWidth - videoWidth;
                 video.vx = -Math.abs(video.vx);
                 flashVideo(videoEl);
             }
-            
-            // Arriba - no pasar los tabs "Seguidos | Para Ti"
             if (video.y <= minY) {
                 video.y = minY;
                 video.vy = Math.abs(video.vy);
                 flashVideo(videoEl);
             }
-            
-            // Abajo - el borde inferior no debe pasar la barra de navegación
             if (video.y + videoHeight >= maxY) {
                 video.y = maxY - videoHeight;
                 video.vy = -Math.abs(video.vy);
                 flashVideo(videoEl);
             }
-            
+
             // Aplicar nueva posición
             videoEl.style.left = video.x + 'px';
             videoEl.style.top = video.y + 'px';
         });
-        
+
         // Continuar animación
         dvdAnimationId = requestAnimationFrame(() => animateDVDVideos(containerWidth, maxY));
     }
@@ -229,21 +378,45 @@ document.addEventListener('DOMContentLoaded', () => {
             for (let j = i + 1; j < dvdVideos.length; j++) {
                 const v1 = dvdVideos[i];
                 const v2 = dvdVideos[j];
-                
+
                 // Detectar colisión
                 if (v1.x < v2.x + v2.width &&
                     v1.x + v1.width > v2.x &&
                     v1.y < v2.y + v2.height &&
                     v1.y + v1.height > v2.y) {
-                    
-                    // Intercambiar velocidades (colisión simple)
-                    const tempVx = v1.vx;
-                    const tempVy = v1.vy;
-                    v1.vx = v2.vx * 0.8;
-                    v1.vy = v2.vy * 0.8;
-                    v2.vx = tempVx * 0.8;
-                    v2.vy = tempVy * 0.8;
-                    
+
+                    // Separar los videos para evitar que se queden pegados
+                    const overlapX = Math.min(v1.x + v1.width, v2.x + v2.width) - Math.max(v1.x, v2.x);
+                    const overlapY = Math.min(v1.y + v1.height, v2.y + v2.height) - Math.max(v1.y, v2.y);
+
+                    if (overlapX < overlapY) {
+                        // Colisión horizontal
+                        if (v1.x < v2.x) {
+                            v1.x -= overlapX / 2;
+                            v2.x += overlapX / 2;
+                        } else {
+                            v1.x += overlapX / 2;
+                            v2.x -= overlapX / 2;
+                        }
+                        // Intercambiar velocidad X
+                        const tempVx = v1.vx;
+                        v1.vx = v2.vx;
+                        v2.vx = tempVx;
+                    } else {
+                        // Colisión vertical
+                        if (v1.y < v2.y) {
+                            v1.y -= overlapY / 2;
+                            v2.y += overlapY / 2;
+                        } else {
+                            v1.y += overlapY / 2;
+                            v2.y -= overlapY / 2;
+                        }
+                        // Intercambiar velocidad Y
+                        const tempVy = v1.vy;
+                        v1.vy = v2.vy;
+                        v2.vy = tempVy;
+                    }
+
                     flashVideo(v1.element);
                     flashVideo(v2.element);
                 }
@@ -257,48 +430,46 @@ document.addEventListener('DOMContentLoaded', () => {
             videoEl.style.boxShadow = '';
         }, 200);
     }
-    
+
     function stopDVDVideos() {
         if (dvdAnimationId) {
             cancelAnimationFrame(dvdAnimationId);
             dvdAnimationId = null;
         }
     }
-    
+
     // ==========================================
     // SELECCIÓN DE VIDEO Y COMENTARIOS
     // ==========================================
-    
+
     function selectVideo(videoEl) {
         // Deseleccionar anterior
         if (selectedVideo) {
             selectedVideo.classList.remove('selected');
         }
-        
+
         // Seleccionar nuevo
         selectedVideo = videoEl;
         videoEl.classList.add('selected');
-        
+
         // Mostrar botón central de comentarios
         const commentBtn = document.getElementById('comment-nav-btn');
         commentBtn.classList.remove('hidden');
-        
-        // Hacer visible el botón de comentarios en la navegación
         commentBtn.style.display = 'flex';
     }
-    
+
     function deselectVideo() {
         if (selectedVideo) {
             selectedVideo.classList.remove('selected');
             selectedVideo = null;
         }
-        
+
         // Ocultar botón central y panel de comentarios
         const commentBtn = document.getElementById('comment-nav-btn');
         commentBtn.classList.add('hidden');
         hideCommentsPanel();
     }
-    
+
     // Botón de comentarios en la navegación
     const commentNavBtn = document.getElementById('comment-nav-btn');
     commentNavBtn.addEventListener('click', () => {
@@ -569,20 +740,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // PERFIL Y AJUSTES
     // ==========================================
-    
-    document.querySelectorAll('.settings-item').forEach(item => {
-        item.addEventListener('click', function() {
-            alert(`⚙️ ${this.textContent}\n\nEsta opción abriría la pantalla de configuración.`);
+
+    // Se inicializa después de que el DOM esté cargado
+    setTimeout(() => {
+        document.querySelectorAll('.settings-item').forEach(item => {
+            item.addEventListener('click', function() {
+                alert(`⚙️ ${this.textContent}\n\nEsta opción abriría la pantalla de configuración.`);
+            });
         });
-    });
-    
-    document.querySelector('.help-btn').addEventListener('click', () => {
-        alert('❓ Centro de Ayuda\n\nEncuentra respuestas y contacta con soporte.');
-    });
-    
-    document.querySelector('.settings-btn').addEventListener('click', () => {
-        alert('⚙️ Configuración General');
-    });
+        
+        const helpBtn = document.querySelector('.help-btn');
+        const settingsBtn = document.querySelector('.settings-btn');
+
+        if (helpBtn) {
+            helpBtn.addEventListener('click', () => {
+                alert('❓ Centro de Ayuda\n\nEncuentra respuestas y contacta con soporte.');
+            });
+        }
+
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                alert('⚙️ Configuración General');
+            });
+        }
+    }, 100);
     
     // Recalcular al redimensionar
     window.addEventListener('resize', () => {

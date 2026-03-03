@@ -3,6 +3,21 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    /* Deshabilitar selección de texto */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Permitir selección solo en inputs de comentarios y chat */
+#comment-input,
+#chat-input {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    cursor: text !important;
 }
 
 body {
@@ -12,6 +27,24 @@ body {
     overflow: hidden;
     height: 100vh;
     width: 100vw;
+    /* Deshabilitar cursor de texto */
+    cursor: default !important;
+}
+
+/* Forzar cursor normal en todos los elementos */
+* {
+    cursor: default !important;
+}
+
+/* Mantener pointer en elementos clickeables */
+button, .tab, .dvd-video, .chat-item, .notification-item, .settings-item, .creator-upload-btn, .publish-btn {
+    cursor: pointer !important;
+}
+
+/* Inputs con cursor de texto */
+#comment-input,
+#chat-input {
+    cursor: text !important;
 }
 
 /* Pantallas */
@@ -48,7 +81,7 @@ body {
 }
 
 .logo .square {
-    position: fixed;
+    position: absolute;
     border-radius: 4px;
 }
 
@@ -91,7 +124,7 @@ body {
     justify-content: center;
     align-items: center;
     padding: 15px;
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     right: 0;
@@ -122,11 +155,13 @@ body {
     position: relative;
     overflow: hidden;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f0f1a 100%);
+    height: 100vh;
+    max-height: 100vh;
 }
 
 /* Logo de fondo */
 .background-logo {
-    position: fixed;
+    position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -136,7 +171,7 @@ body {
 }
 
 .bg-logo-square {
-    position: fixed;
+    position: absolute;
     border-radius: 12px;
 }
 
@@ -159,9 +194,9 @@ body {
 }
 
 .dvd-video {
-    position: fixed;
-    width: 200px;
-    height: 280px;
+    position: absolute;
+    width: 350px;
+    height: 263px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
@@ -169,15 +204,31 @@ body {
     justify-content: center;
     align-items: center;
     transition: transform 0.1s linear, box-shadow 0.3s;
-    /* responsive */
+    will-change: left, top;
     cursor: pointer;
     overflow: hidden;
     z-index: 10;
 }
 
+/* Media queries para ajustar tamaño de videos según altura de pantalla */
+@media (max-height: 700px) {
+    .dvd-video {
+        width: 280px;
+        height: 210px;
+    }
+}
+
+@media (max-height: 500px) {
+    .dvd-video {
+        width: 220px;
+        height: 165px;
+    }
+}
+
 .dvd-video.selected {
-    box-shadow: 0 0 0 4px #f7b916, 0 8px 32px rgba(247, 185, 22, 0.6);
+    box-shadow: 0 0 0 4px #fff, 0 8px 32px rgba(255, 255, 255, 0.6);
     z-index: 50;
+    border: 4px solid #fff;
 }
 
 #video1 {
@@ -213,7 +264,7 @@ body {
 }
 
 .video-overlay {
-    position: fixed;
+    position: absolute;
     bottom: 0;
     left: 0;
     right: 0;
@@ -729,7 +780,7 @@ body {
 }
 
 .creator-close {
-    position: fixed;
+    position: absolute;
     top: 20px;
     right: 20px;
     font-size: 32px;
@@ -763,7 +814,7 @@ body {
 }
 
 .creator-square {
-    position: fixed;
+    position: absolute;
     border-radius: 12px;
 }
 
@@ -990,19 +1041,4 @@ body {
 /* Utilidades */
 .hidden {
     display: none !important;
-}
-
-
-/* Responsive DVD video sizes */
-@media (max-width: 767px) {
-    .dvd-video {
-        width: 120px !important;
-        height: 160px !important;
-    }
-}
-@media (min-width: 768px) and (max-width: 1024px) {
-    .dvd-video {
-        width: 150px !important;
-        height: 200px !important;
-    }
 }
