@@ -107,6 +107,6 @@ app.get('/', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`🎬 DOPMAX Server running at http://localhost:${PORT}`);
-    console.log(`🅡 Videos directory: ${VIDEOS_DIR});
+    console.log(`🅡 Videos directory: ${VIDEOS_DIR}`);
     console.log(`🏗 Frontend: ${FRONTEND_DIR}`);
 });

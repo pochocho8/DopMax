@@ -48,7 +48,7 @@ body {
 }
 
 .logo .square {
-    position: absolute;
+    position: fixed;
     border-radius: 4px;
 }
 
@@ -91,7 +91,7 @@ body {
     justify-content: center;
     align-items: center;
     padding: 15px;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     right: 0;
@@ -126,7 +126,7 @@ body {
 
 /* Logo de fondo */
 .background-logo {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -136,7 +136,7 @@ body {
 }
 
 .bg-logo-square {
-    position: absolute;
+    position: fixed;
     border-radius: 12px;
 }
 
@@ -159,7 +159,7 @@ body {
 }
 
 .dvd-video {
-    position: absolute;
+    position: fixed;
     width: 200px;
     height: 280px;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -169,7 +169,7 @@ body {
     justify-content: center;
     align-items: center;
     transition: transform 0.1s linear, box-shadow 0.3s;
-    will-change: left, top;
+    /* responsive */
     cursor: pointer;
     overflow: hidden;
     z-index: 10;
@@ -213,7 +213,7 @@ body {
 }
 
 .video-overlay {
-    position: absolute;
+    position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
@@ -729,7 +729,7 @@ body {
 }
 
 .creator-close {
-    position: absolute;
+    position: fixed;
     top: 20px;
     right: 20px;
     font-size: 32px;
@@ -763,7 +763,7 @@ body {
 }
 
 .creator-square {
-    position: absolute;
+    position: fixed;
     border-radius: 12px;
 }
 
@@ -990,4 +990,19 @@ body {
 /* Utilidades */
 .hidden {
     display: none !important;
+}
+
+
+/* Responsive DVD video sizes */
+@media (max-width: 767px) {
+    .dvd-video {
+        width: 120px !important;
+        height: 160px !important;
+    }
+}
+@media (min-width: 768px) and (max-width: 1024px) {
+    .dvd-video {
+        width: 150px !important;
+        height: 200px !important;
+    }
 }
